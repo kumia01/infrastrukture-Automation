@@ -1,0 +1,41 @@
+name: Terraform
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Install Terraform
+      run: |
+        VERSION=$(curl --silent https://checkpoint-api.hashicorp.com/v1/check/terraform | jq -r -c '.current_version')
+        curl -O https://releases.hashicorp.com/terraform/${VERSION}/terraform_${VERSION}_linux_amd64.zip
+        unzip terraform_${VERSION}_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform version
+      
+    - name: Install AWS CLI
+      run: |
+        VERSION=$(curl -L https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install)
+        aws --version
+        
+    - name: Configure AWS Credentials
+      run: aws configure set aws_access_key_id ${{ secrets.AWS_ACCESS_KEY_ID }}
+      run: aws configure set aws_secret_access_key ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    - name: Terraform plan
+      run: terraform plan -out=tfplan
+      
+    - name: Terraform apply
+      if: success()
+      run: terraform apply -auto-approve tfplan
