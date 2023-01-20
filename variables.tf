@@ -1,7 +1,7 @@
-variable "access_key" { 
-  var = "${var.AWS_ACCESS_KEY_ID}"
+variable "access_key" {
+  default = "${secret("github_access_key")}"
 }
 
 variable "secret_key" {
-  var = "${var.AWS_SECRET_ACCESS_KEY}"
+  default = "${secret("github_secret_key")}"
 }
