@@ -39,7 +39,7 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY= ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
 
     - name: Terraform plan
-      run: terraform plan -out=tfplan
+      run: terraform init && terraform plan -out=tfplan
       
     - name: Terraform apply
       if: success()
