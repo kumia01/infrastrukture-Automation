@@ -76,3 +76,5 @@ resource "aws_instance" "redhat_linux_2" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.example.id]
   subnet_id = aws_subnet.example.id
+  key_name = aws_key_pair.example.key_name
+}
