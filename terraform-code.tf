@@ -15,6 +15,10 @@ variable "AWS_SECRET_ACCESS_KEY" {
   type=string
 }
 
+variable "public_key"{
+  type=string
+}
+
 provider "aws" {
   region = "us-west-2"
   access_key = var.AWS_ACCESS_KEY_ID
@@ -53,9 +57,9 @@ resource "aws_security_group" "example" {
   }
 }
 
-resource "aws_key_pair" "example" {
-  key_name = "example"
-  public_key = "XXXXXXXXXXXXXXXX"
+resource "aws_key_pair" "testkey" {
+  key_name = "testkey"
+  public_key = "var.public_key"
 }
 
 resource "aws_instance" "ansible_tower" {
@@ -63,7 +67,7 @@ resource "aws_instance" "ansible_tower" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.example.id]
   subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.example.key_name
+  key_name = aws_key_pair.testkey.key_name
 
   provisioner "remote-exec" {
     inline = [
@@ -82,7 +86,7 @@ resource "aws_instance" "redhat_linux_1" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.example.id]
   subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.example.key_name
+  key_name = aws_key_pair.testkey.key_name
 
   tags = {
     Name = "Red Hat Linux 1"
@@ -94,5 +98,5 @@ resource "aws_instance" "redhat_linux_2" {
   instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.example.id]
   subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.example.key_name
+  key_name = aws_key_pair.testkey.key_name
 }
