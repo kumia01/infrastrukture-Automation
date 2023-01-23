@@ -57,11 +57,6 @@ resource "aws_security_group" "example" {
   }
 }
 
-resource "aws_key_pair" "testkey" {
-  key_name = "testkey"
-  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCJ+8pO2Jc1WyVKw6XapDlbZrPIQFZV6BQoWo3jvii3bZnyOhRVU2HZ6DkcFbScWecwT+m+4hbPiy7J+EeRMruj5SAQZSCRqhOhs6hZOk81ksAVkEiHs6Q50xe1+xuJ8a9hTBrx7BuER7Rl6f9LamyaH/dmpR5PJ+qICLjr+XtJ6R6c5i7WR00QATMTxLsArJu72mUbK5opCMvECiHxnXHiO/Ph2kTuEDrk0KLOlvsJichwX9qfETWDwKNWTN+HtaVAVEjeVBIvvTEf54uT9oqPC5XLgIKI8PWc0s+0QoOMvp5hEt6LH+RPwBjVEfDaWRxloUc26BCTunU1JWctOqcN"
-}
-
 resource "aws_instance" "ansible_tower" {
   ami           = "ami-0c94855ba95c71c99"
   instance_type = "t2.micro"
