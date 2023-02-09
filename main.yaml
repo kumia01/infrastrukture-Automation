@@ -1,29 +1,64 @@
-# Use the official openjdk image as the base image
-FROM openjdk:17-slim-buster
+name: Build and Deploy Docker Image
 
-# Install Apache
-RUN apt-get update && apt-get install -y apache2
+on:
+  push:
+    branches:
+      - main
 
-# Install Maven
-RUN apt-get update && apt-get install -y maven
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  REPOSITORY_NAME: my-ubuntu-image
+  AWS_REGION: us-west-2
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  EC2_INSTANCE_ID: i-0123456789abcdef0
+  EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
 
-# Install Gradle
-RUN apt-get update && apt-get install -y gradle
+jobs:
+  build:
+    runs-on: ubuntu-20.04
 
-# Clone the Gradle project from GitHub
-RUN git clone https://github.com/user/repo.git /app
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-# Set the working directory to /app
-WORKDIR /app
+    - name: Build Docker image
+      run: |
+        docker build -t $REPOSITORY_NAME .
 
-# Build the Gradle project
-RUN ./gradlew build
+    - name: Log in to Docker Hub
+      run: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
 
-# Configure Apache to serve the Gradle project
-RUN echo "ProxyPass / http://localhost:8080/\nProxyPassReverse / http://localhost:8080/" >> /etc/apache2/sites-available/000-default.conf
+    - name: Tag Docker image
+      run: docker tag $REPOSITORY_NAME $DOCKER_USERNAME/$REPOSITORY_NAME
 
-# Expose port 80
-EXPOSE 80
+    - name: Push Docker image
+      run: docker push $DOCKER_USERNAME/$REPOSITORY_NAME
 
-# Start Apache in the foreground
-CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
+  deploy:
+    needs: build
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y awscli
+
+    - name: Configure SSH key
+      run: |
+        echo "$EC2_SSH_KEY" > key.pem
+        chmod 600 key.pem
+
+    - name: SSH into EC2 instance
+      run: |
+        ssh -i key.pem ubuntu@$EC2_INSTANCE_ID '
+          old_container_id=$(docker ps -q -f "name=$REPOSITORY_NAME")
+          if [ ! -z "$old_container_id" ]; then
+            docker stop $old_container_id
+            docker rm $old_container_id
+          fi
+          docker pull $DOCKER_USERNAME/$REPOSITORY_NAME
+          docker run -d -p 8080:80 --name $REPOSITORY_NAME $DOCKER_USERNAME/$REPOSITORY_NAME
+        '
