@@ -1,0 +1,29 @@
+# Use the official openjdk image as the base image
+FROM openjdk:17-slim-buster
+
+# Install Apache
+RUN apt-get update && apt-get install -y apache2
+
+# Install Maven
+RUN apt-get update && apt-get install -y maven
+
+# Install Gradle
+RUN apt-get update && apt-get install -y gradle
+
+# Clone the Gradle project from GitHub
+RUN git clone https://github.com/user/repo.git /app
+
+# Set the working directory to /app
+WORKDIR /app
+
+# Build the Gradle project
+RUN ./gradlew build
+
+# Configure Apache to serve the Gradle project
+RUN echo "ProxyPass / http://localhost:8080/\nProxyPassReverse / http://localhost:8080/" >> /etc/apache2/sites-available/000-default.conf
+
+# Expose port 80
+EXPOSE 80
+
+# Start Apache in the foreground
+CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]
