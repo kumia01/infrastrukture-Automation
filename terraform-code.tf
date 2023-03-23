@@ -7,91 +7,35 @@ terraform {
   }
 }
 
-variable "AWS_ACCESS_KEY_ID" {
-  type=string
-}
-
-variable "AWS_SECRET_ACCESS_KEY" {
-  type=string
-}
-
-variable "public_key"{
-  type=string
-}
-
+# Provider configuration
 provider "aws" {
-  region = "us-west-2"
-  access_key = var.AWS_ACCESS_KEY_ID
-  secret_key = var.AWS_SECRET_ACCESS_KEY
+  region = "eu-west-2" 
+
 }
 
-
-resource "aws_vpc" "example" {
-  cidr_block = "10.0.0.0/16"
-}
-
-resource "aws_subnet" "example" {
-  vpc_id = aws_vpc.example.id
-  cidr_block = "10.0.1.0/24"
-}
-
-resource "aws_security_group" "example" {
-  vpc_id = aws_vpc.example.id
-  ingress {
-    from_port = 22
-    to_port = 22
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_instance" "ansible_tower" {
-  ami           = "ami-0c94855ba95c71c99"
+# EC2 instance resources
+resource "aws_instance" "webserver" {
+  ami           = "ami-0aaa5410833273cfe"
   instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.example.id]
-  subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.testkey.key_name
-
-  provisioner "remote-exec" {
-    inline = [
-      "yum install -y ansible-tower-setup",
-      "echo 'XXXXXXXXXXXXXXXX' | /usr/bin/tower-setup --license"
-    ]
-  }
-
+  count         = 2
+  key_name = "redhat_test"
+  subnet_id = "subnet-0c8329ddafc25d35b"
+  vpc_security_group_ids = ["sg-016087d20d1d334f3"]
+  associate_public_ip_address = true
+  
+  # Tags
   tags = {
-    Name = "Ansible Tower"
+    Name = "webserver-cluster-${count.index}"
   }
+
+  # User data script to install NGINX
+  user_data = <<-EOF
+              #!/bin/bash
+              sudo apt-get update
+              sudo apt-get install -y nginx
+              sudo systemctl enable nginx
+              sudo systemctl start nginx
+              EOF
+
 }
 
-resource "aws_instance" "redhat_linux_1" {
-  ami           = "ami-0c94855ba95c71c99"
-  instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.example.id]
-  subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.testkey.key_name
-
-  tags = {
-    Name = "Red Hat Linux 1"
-  }
-}
-
-resource "aws_instance" "redhat_linux_2" {
-  ami           = "ami-0c94855ba95c71c99"
-  instance_type = "t2.micro"
-  vpc_security_group_ids = [aws_security_group.example.id]
-  subnet_id = aws_subnet.example.id
-  key_name = aws_key_pair.testkey.key_name
-}
